@@ -20,9 +20,21 @@ struct Guard {
     Dir dir = Dir::TOP;
 
     string hash() {
-        return to_string(row) + "/" + to_string(col) + "/" + to_string((int)dir);
+        return to_string(row) + "/" + to_string(col) + "/" + to_string((int) dir);
     }
 };
+
+bool*** visited;
+
+void reset_visited() {
+    for (int i = 0; i < 130; i++) {
+        for (int j = 0; j < 130; j++) {
+            for (int k = 0; k < 4; k++) {
+                visited[i][j][k] = false;
+            }
+        }
+    }
+}
 
 vector<vector<char>> read_data(const string &filename) {
     vector<vector<char>> matrix;
@@ -54,10 +66,10 @@ bool is_game_over(const vector<vector<char>> &matrix, const Guard &guard) {
     const int rows = matrix.size();
     const int cols = matrix.front().size();
     return
-        (guard.row <= 0 && guard.dir == Dir::TOP) ||
-        (guard.row >= rows - 1 && guard.dir == Dir::DOWN) ||
-        (guard.col <= 0 && guard.dir == Dir::LEFT) ||
-        (guard.col >= cols - 1 && guard.dir == Dir::RIGHT);
+        (guard.row == 0 && guard.dir == Dir::TOP) ||
+        (guard.row == rows - 1 && guard.dir == Dir::DOWN) ||
+        (guard.col == 0 && guard.dir == Dir::LEFT) ||
+        (guard.col == cols - 1 && guard.dir == Dir::RIGHT);
 }
 
 char next_char(const vector<vector<char>> &matrix, const Guard &guard) {
@@ -129,20 +141,20 @@ int solution_1() {
 
 bool is_running_in_loop(const vector<vector<char>> &matrix) {
     auto guard = find_start_position(matrix);
-
-    unordered_set<string> visited;
-    visited.insert(guard.hash());
+    reset_visited();
 
     while (!is_game_over(matrix, guard)) {
         auto c = next_char(matrix, guard);
         if (c == '#') {
             rotate(guard);
+            visited[guard.row][guard.col][(int) guard.dir - 1] = true;
+        } else {
+            move(guard);
+            if (visited[guard.row][guard.col][(int) guard.dir - 1]) {
+                return true;
+            }
+            visited[guard.row][guard.col][(int) guard.dir - 1] = true;
         }
-        move(guard);
-        if (visited.find(guard.hash()) != visited.end()) {
-            return true;
-        }
-        visited.insert(guard.hash());
     }
 
     return false;
@@ -151,6 +163,14 @@ bool is_running_in_loop(const vector<vector<char>> &matrix) {
 int solution_2() {
     auto matrix = read_data("6/data2.txt");
     int count = 0;
+
+    visited = new bool**[matrix.size()];
+    for (int i = 0; i < matrix.size(); i++) {
+        visited[i] = new bool*[matrix[0].size()];
+        for (int j = 0; j < matrix[0].size(); j++) {
+            visited[i][j] = new bool[4];
+        }
+    }
 
     for (int i = 0; i < matrix.size(); i++) {
         for (int j = 0; j < matrix[0].size(); j++) {
