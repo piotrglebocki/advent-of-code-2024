@@ -19,12 +19,14 @@ struct VerticalEdge {
     int j;
     int start_i;
     int end_i;
+    bool is_left;
 };
 
 struct HorizontalEdge {
     int i;
     int start_j;
     int end_j;
+    bool is_top;
 };
 
 vector<vector<char>> read_data(const string &filename) {
@@ -77,10 +79,10 @@ vector<VerticalEdge> get_all_vertical_edges(const vector<Pos> nodes, const vecto
         Pos right{it.i, it.j + 1};
 
         if (get(matrix, left) != val) {
-            edges.emplace_back(VerticalEdge{it.j, it.i, it.i + 1});
+            edges.emplace_back(VerticalEdge{it.j, it.i, it.i + 1, true});
         }
         if (get(matrix, right) != val) {
-            edges.emplace_back(VerticalEdge{it.j + 1, it.i, it.i + 1});
+            edges.emplace_back(VerticalEdge{it.j + 1, it.i, it.i + 1, false});
         }
     }
     return edges;
@@ -94,10 +96,10 @@ vector<HorizontalEdge> get_all_horizontal_edges(const vector<Pos> nodes, const v
         Pos down{it.i + 1, it.j};
 
         if (get(matrix, up) != val) {
-            edges.emplace_back(HorizontalEdge{it.i, it.j, it.j + 1});
+            edges.emplace_back(HorizontalEdge{it.i, it.j, it.j + 1, true});
         }
         if (get(matrix, down) != val) {
-            edges.emplace_back(HorizontalEdge{it.i + 1, it.j, it.j + 1});
+            edges.emplace_back(HorizontalEdge{it.i + 1, it.j, it.j + 1, false});
         }
     }
     return edges;
@@ -121,12 +123,12 @@ int count_groups(const std::vector<bool>& vec) {
     return count;
 }
 
-int count_vertical_sides(vector<VerticalEdge> edges, int j) {
+int count_vertical_sides(vector<VerticalEdge> edges, int j, bool left_side) {
     vector<VerticalEdge> edges_in_line;
     int min_i = INT_MAX;
     int max_i = INT_MIN;
     for (const auto& it: edges) {
-        if (it.j == j) {
+        if (it.j == j && it.is_left == left_side) {
             edges_in_line.push_back(it);
             min_i = min(min_i, it.start_i);
             max_i = max(max_i, it.start_i);
@@ -147,12 +149,12 @@ int count_vertical_sides(vector<VerticalEdge> edges, int j) {
 }
 
 
-int count_horizontal_sides(vector<HorizontalEdge> edges, int i) {
+int count_horizontal_sides(vector<HorizontalEdge> edges, int i, bool top_side) {
     vector<HorizontalEdge> edges_in_line;
     int min_j = INT_MAX;
     int max_j = INT_MIN;
     for (const auto& it: edges) {
-        if (it.i == i) {
+        if (it.i == i && it.is_top == top_side) {
             edges_in_line.push_back(it);
             min_j = min(min_j, it.start_j);
             max_j = max(max_j, it.start_j);
@@ -190,13 +192,15 @@ int count_sides(const vector<Pos> nodes, const vector<vector<char>> &matrix) {
     // vertical sides
     for (int j = min_j; j <= max_j; j++) {
         auto edges = get_all_vertical_edges(nodes, matrix);
-        sides += count_vertical_sides(edges, j);
+        sides += count_vertical_sides(edges, j, false);
+        sides += count_vertical_sides(edges, j, true);
     }
 
     // horizontal sides
     for (int i = min_i; i <= max_i; i++) {
         auto edges = get_all_horizontal_edges(nodes, matrix);
-        sides += count_horizontal_sides(edges, i);
+        sides += count_horizontal_sides(edges, i, false);
+        sides += count_horizontal_sides(edges, i, true);
     }
 
     return sides;
