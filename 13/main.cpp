@@ -1,16 +1,15 @@
 
-#include <climits>
 #include <iostream>
-#include <unordered_map>
 #include <fstream>
-#include <sstream>
 #include <string>
 #include <vector>
 
 using namespace std;
 
+long long SHIFT = 10000000000000;
+
 struct Vec {
-    int x, y;
+    long long x, y;
 };
 
 struct Data {
@@ -41,7 +40,7 @@ std::vector<Data> read_data(const std::string& filename) {
 
     std::string line;
     while (std::getline(file, line)) {
-        int a_x = 0, a_y = 0, b_x = 0, b_y = 0, dest_x = 0, dest_y = 0;
+        long long a_x = 0, a_y = 0, b_x = 0, b_y = 0, dest_x = 0, dest_y = 0;
 
         // Parse Button A
         if (line.find("Button A:") != std::string::npos) {
@@ -57,7 +56,7 @@ std::vector<Data> read_data(const std::string& filename) {
                 std::sscanf(line.c_str(), "Prize: X=%d, Y=%d", &dest_x, &dest_y);
             }
 
-            result.emplace_back(Data{Vec{a_x, a_y}, Vec{b_x, b_y}, Vec{dest_x, dest_y}});
+            result.emplace_back(Data{Vec{a_x, a_y}, Vec{b_x, b_y}, Vec{dest_x + SHIFT, dest_y + SHIFT}});
         }
     }
 
@@ -65,52 +64,36 @@ std::vector<Data> read_data(const std::string& filename) {
     return result;
 }
 
-string gen_key(const Vec &pos, const int cost) {
-    return to_string(pos.x) + "," + to_string(pos.y) + "," + to_string(cost);
-}
-
-int calculate_cost(
-    const Data &data,
-    const Vec &pos,
-    const int cost,
-    unordered_map<string, int> &cache
+long long calculate_cost(
+    const Data &data
 ) {
-//    cout << pos.x << ":" <<pos.y << ", " <<cost<<endl;
-    const auto cache_key = gen_key(pos, cost);
-    auto it = cache.find(cache_key);
+    long long a_dx = data.step_a.x;
+    long long a_dy = data.step_a.y;
+    long long b_dx = data.step_b.x;
+    long long b_dy = data.step_b.y;
+    long long target_x = data.dest.x;
+    long long target_y = data.dest.y;
 
-    int result;
-    if (it != cache.end()) {
-        return it->second;
-    }
+    double denominator = a_dx * b_dy - a_dy * b_dx;
+    if (denominator == 0) return 0;
 
-    if (pos == data.dest) {
-        result = cost;
-    } else if (pos > data.dest) {
-        result = INT_MAX;
-    } else {
-        result = min(
-            calculate_cost(data, pos + data.step_a, cost + 3, cache),
-            calculate_cost(data, pos + data.step_b, cost + 1, cache)
-        );
-    }
-    cache.insert({cache_key, result});
-    return result;
+    double pb = (a_dx * target_y - a_dy * target_x) / static_cast<double>(denominator);
+
+    if (static_cast<long long>(pb) != pb) return 0;
+
+    double pa = (target_x - b_dx * pb) / static_cast<double>(a_dx);
+    if (static_cast<long long>(pa) != pa) return 0;
+
+    return static_cast<long long>(pa * 3 + pb);
 }
 
 int main() {
     auto data = read_data("13/data.txt");
-    unsigned int cost_sum = 0;
+    unsigned long long cost_sum = 0;
     for (const auto &it: data) {
-        unordered_map<string, int> cache;
-        auto cost = calculate_cost(it, {0, 0}, 0, cache);
-        if (cost != INT_MAX) {
-            cost_sum +=cost;
-        }
+        cost_sum += calculate_cost(it);
     }
-
     cout<<cost_sum;
-
     return 0;
 }
 
