@@ -3,17 +3,25 @@
 #include <fstream>
 #include <iostream>
 #include <vector>
+#include <queue>
 
 using namespace std;
 
 using Position = std::tuple<int, int>;
-using Visited = vector<vector<vector<bool>>>;
+using Cost = vector<vector<vector<int>>>;
 
 enum class Direction {
     RIGHT = 0,
     LEFT = 1,
     UP = 2,
     DOWN = 3
+};
+
+struct CellData {
+    int cost;
+    int row;
+    int col;
+    Direction dir;
 };
 
 std::tuple<int, int> get_step(Direction dir) {
@@ -81,61 +89,126 @@ std::tuple<int, int> find_start(const vector<vector<char>> &matrix) {
     assert(false); // not found
 }
 
-int dfs(const vector<vector<char>> &matrix, Visited &visited, const Position &pos, const Direction dir, int current_cost) {
-    const auto &[r, c] = pos;
-    visited[r][c][(int) dir] = true;
+//int dfs(const vector<vector<char>> &matrix, Visited &visited, const Position &pos, const Direction dir, int current_cost) {
+//    const auto &[r, c] = pos;
+//    visited[r][c][(int) dir] = true;
+//
+//    if (matrix[r][c] == 'E') {
+//        return current_cost;
+//    }
+//
+//    int min_cost = INT_MAX;
+//
+//    // move
+//    {
+//        const auto &[r_step, c_step] = get_step(dir);
+//        auto new_r = r + r_step;
+//        auto new_c = c + c_step;
+//        if (!visited[new_r][new_c][(int) dir]) {
+//
+//            if (matrix[new_r][new_c] != '#') {
+//                int cost = dfs(matrix, visited, make_tuple(new_r, new_c), dir, current_cost + 1);
+//                min_cost = min(min_cost, cost);
+//            }
+//        }
+//    }
+//
+//    // rotate cw
+//    {
+//        auto new_dir = rotate_cw(dir);
+//        if (!visited[r][c][(int) new_dir]) {
+//            int cost = dfs(matrix, visited, pos, new_dir, current_cost + 1000);
+//            min_cost = min(min_cost, cost);
+//        }
+//    }
+//
+//    // rotate ccw
+//    {
+//        auto new_dir = rotate_ccw(dir);
+//        if (!visited[r][c][(int) new_dir]) {
+//            int cost = dfs(matrix, visited, pos, new_dir, current_cost + 1000);
+//            min_cost = min(min_cost, cost);
+//        }
+//    }
+//    return min_cost;
+//}
 
-    if (matrix[r][c] == 'E') {
-        return current_cost;
-    }
+bool compare(const CellData &a, const CellData &b) {
+    return a.cost > b.cost;
+}
 
-    int min_cost = INT_MAX;
+int find(const vector<vector<char>> &matrix) {
+    const auto rows = matrix.size();
+    const auto cols = matrix[0].size();
 
-    // move
-    {
-        const auto &[r_step, c_step] = get_step(dir);
-        auto new_r = r + r_step;
-        auto new_c = c + c_step;
-        if (!visited[new_r][new_c][(int) dir]) {
+    auto start_dir = Direction::RIGHT;
+    auto start_pos = find_start(matrix);
+    auto [start_r, start_c] = start_pos;
+
+    priority_queue<CellData, vector<CellData>, decltype(&compare)> pq(compare);
+    pq.push(CellData{0, start_r, start_c, start_dir});
+
+    Cost min_cost = vector(rows, vector(cols, vector(4, INT_MAX)));
+    min_cost[start_r][start_c][(int) start_dir] = 0;
+
+    while (!pq.empty()) {
+        auto cell_data = pq.top();
+        pq.pop();
+
+        int current_cost = cell_data.cost;
+        int r = cell_data.row;
+        int c = cell_data.col;
+        Direction dir = cell_data.dir;
+
+        if (matrix[r][c] == 'E') {
+            return current_cost;
+        }
+
+        // move
+        {
+            const auto &[r_step, c_step] = get_step(dir);
+            auto new_r = r + r_step;
+            auto new_c = c + c_step;
 
             if (matrix[new_r][new_c] != '#') {
-                int cost = dfs(matrix, visited, make_tuple(new_r, new_c), dir, current_cost + 1);
-                min_cost = min(min_cost, cost);
+                int new_cost = current_cost + 1;
+                if (new_cost < min_cost[new_r][new_c][(int)dir]) {
+                    min_cost[new_r][new_c][(int)dir] = new_cost;
+                    pq.push(CellData{new_cost, new_r, new_c, dir});
+                }
             }
         }
-    }
 
-    // rotate cw
-    {
-        auto new_dir = rotate_cw(dir);
-        if (!visited[r][c][(int) new_dir]) {
-            int cost = dfs(matrix, visited, pos, new_dir, current_cost + 1000);
-            min_cost = min(min_cost, cost);
+        // rotate cw
+        {
+            auto new_dir = rotate_cw(dir);
+            int new_cost = current_cost + 1000;
+            if (new_cost < min_cost[r][c][(int)new_dir]) {
+                min_cost[r][c][(int)new_dir] = new_cost;
+                pq.push(CellData{new_cost, r, c, new_dir});
+            }
+
+        }
+
+        // rotate ccw
+        {
+            auto new_dir = rotate_ccw(dir);
+            int new_cost = current_cost + 1000;
+            if (new_cost < min_cost[r][c][(int)new_dir]) {
+                min_cost[r][c][(int)new_dir] = new_cost;
+                pq.push(CellData{new_cost, r, c, new_dir});
+            }
+
         }
     }
 
-    // rotate ccw
-    {
-        auto new_dir = rotate_ccw(dir);
-        if (!visited[r][c][(int) new_dir]) {
-            int cost = dfs(matrix, visited, pos, new_dir, current_cost + 1000);
-            min_cost = min(min_cost, cost);
-        }
-    }
-    return min_cost;
+    return INT_MAX;
 }
 
 int main() {
     auto matrix = read_field("16/data.txt");
-    const auto rows = matrix.size();
-    const auto cols = matrix[0].size();
-    Visited visited = vector(rows, vector(cols, vector(4, false)));
 
-    auto start = find_start(matrix);
-    auto [r, c] = start;
-    visited[r][c][(int)Direction::RIGHT] = true;
-
-    int cost = dfs(matrix, visited, start, Direction::RIGHT, 0);
+    int cost = find(matrix);
     cout << cost << endl;
     return 0;
 }
