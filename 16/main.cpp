@@ -4,11 +4,13 @@
 #include <iostream>
 #include <vector>
 #include <queue>
+#include <unordered_set>
 
 using namespace std;
 
 using Position = std::tuple<int, int>;
 using Cost = vector<vector<vector<int>>>;
+using Previous = vector<vector<Position>>;
 
 enum class Direction {
     RIGHT = 0,
@@ -89,55 +91,11 @@ std::tuple<int, int> find_start(const vector<vector<char>> &matrix) {
     assert(false); // not found
 }
 
-//int dfs(const vector<vector<char>> &matrix, Visited &visited, const Position &pos, const Direction dir, int current_cost) {
-//    const auto &[r, c] = pos;
-//    visited[r][c][(int) dir] = true;
-//
-//    if (matrix[r][c] == 'E') {
-//        return current_cost;
-//    }
-//
-//    int min_cost = INT_MAX;
-//
-//    // move
-//    {
-//        const auto &[r_step, c_step] = get_step(dir);
-//        auto new_r = r + r_step;
-//        auto new_c = c + c_step;
-//        if (!visited[new_r][new_c][(int) dir]) {
-//
-//            if (matrix[new_r][new_c] != '#') {
-//                int cost = dfs(matrix, visited, make_tuple(new_r, new_c), dir, current_cost + 1);
-//                min_cost = min(min_cost, cost);
-//            }
-//        }
-//    }
-//
-//    // rotate cw
-//    {
-//        auto new_dir = rotate_cw(dir);
-//        if (!visited[r][c][(int) new_dir]) {
-//            int cost = dfs(matrix, visited, pos, new_dir, current_cost + 1000);
-//            min_cost = min(min_cost, cost);
-//        }
-//    }
-//
-//    // rotate ccw
-//    {
-//        auto new_dir = rotate_ccw(dir);
-//        if (!visited[r][c][(int) new_dir]) {
-//            int cost = dfs(matrix, visited, pos, new_dir, current_cost + 1000);
-//            min_cost = min(min_cost, cost);
-//        }
-//    }
-//    return min_cost;
-//}
-
 bool compare(const CellData &a, const CellData &b) {
     return a.cost > b.cost;
 }
 
-int find(const vector<vector<char>> &matrix) {
+int find(vector<vector<char>> &matrix) {
     const auto rows = matrix.size();
     const auto cols = matrix[0].size();
 
@@ -149,6 +107,7 @@ int find(const vector<vector<char>> &matrix) {
     pq.push(CellData{0, start_r, start_c, start_dir});
 
     Cost min_cost = vector(rows, vector(cols, vector(4, INT_MAX)));
+    Previous previous = vector(rows, vector(cols, Position{-1, -1}));
     min_cost[start_r][start_c][(int) start_dir] = 0;
 
     while (!pq.empty()) {
@@ -161,6 +120,14 @@ int find(const vector<vector<char>> &matrix) {
         Direction dir = cell_data.dir;
 
         if (matrix[r][c] == 'E') {
+
+
+            while (previous[r][c] != Position(-1, -1)) {
+                matrix[r][c] = 'O';
+                Position p = previous[r][c];
+                r = get<0>(p);
+                c = get<1>(p);
+            }
             return current_cost;
         }
 
@@ -172,8 +139,9 @@ int find(const vector<vector<char>> &matrix) {
 
             if (matrix[new_r][new_c] != '#') {
                 int new_cost = current_cost + 1;
-                if (new_cost < min_cost[new_r][new_c][(int)dir]) {
-                    min_cost[new_r][new_c][(int)dir] = new_cost;
+                if (new_cost < min_cost[new_r][new_c][(int) dir]) {
+                    min_cost[new_r][new_c][(int) dir] = new_cost;
+                    previous[new_r][new_c] = Position{r, c};
                     pq.push(CellData{new_cost, new_r, new_c, dir});
                 }
             }
@@ -183,8 +151,8 @@ int find(const vector<vector<char>> &matrix) {
         {
             auto new_dir = rotate_cw(dir);
             int new_cost = current_cost + 1000;
-            if (new_cost < min_cost[r][c][(int)new_dir]) {
-                min_cost[r][c][(int)new_dir] = new_cost;
+            if (new_cost < min_cost[r][c][(int) new_dir]) {
+                min_cost[r][c][(int) new_dir] = new_cost;
                 pq.push(CellData{new_cost, r, c, new_dir});
             }
 
@@ -194,8 +162,8 @@ int find(const vector<vector<char>> &matrix) {
         {
             auto new_dir = rotate_ccw(dir);
             int new_cost = current_cost + 1000;
-            if (new_cost < min_cost[r][c][(int)new_dir]) {
-                min_cost[r][c][(int)new_dir] = new_cost;
+            if (new_cost < min_cost[r][c][(int) new_dir]) {
+                min_cost[r][c][(int) new_dir] = new_cost;
                 pq.push(CellData{new_cost, r, c, new_dir});
             }
 
@@ -205,10 +173,38 @@ int find(const vector<vector<char>> &matrix) {
     return INT_MAX;
 }
 
+void print(const vector<vector<char>> &matrix) {
+    for (const auto &row: matrix) {
+        for (auto it: row) {
+            cout << it;
+        }
+        cout << endl;
+    }
+}
+
+int count(const vector<vector<char>> &matrix) {
+    int count = 0;
+    for (const auto &row: matrix) {
+        for (auto it: row) {
+            if (it == 'O' || it == 'E' || it == 'S') {
+                count++;
+            }
+        }
+    }
+    return count;
+}
+
 int main() {
     auto matrix = read_field("16/data.txt");
+    const auto rows = matrix.size();
+    const auto cols = matrix[0].size();
 
-    int cost = find(matrix);
-    cout << cost << endl;
+    unordered_set<string> visited;
+
+    int min_cost = find(matrix);
+    cout << min_cost << endl;
+
+    print(matrix);
+//    cout << count(matrix);
     return 0;
 }
