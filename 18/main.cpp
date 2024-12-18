@@ -9,10 +9,10 @@ using namespace std;
 
 const int AREA_SIZE = 71;
 
-const vector<tuple<int, int>> dirs {
-    {0, 1},
-    {0, -1},
-    {1, 0},
+const vector<tuple<int, int>> dirs{
+    {0,  1},
+    {0,  -1},
+    {1,  0},
     {-1, 0}
 };
 
@@ -34,7 +34,7 @@ std::vector<std::string> split(const std::string &sentence, char delimiter) {
     return tokens;
 }
 
-vector<Pos> read_data(const string& filename) {
+vector<Pos> read_data(const string &filename) {
     vector<Pos> out;
     ifstream file(filename);
     if (!file.is_open()) {
@@ -65,24 +65,24 @@ bool compare(const CellData &a, const CellData &b) {
     return a.dist > b.dist;
 }
 
-vector<Pos> get_neighbours(const vector<vector<char>>& matrix, const Pos& pos) {
+vector<Pos> get_neighbours(const vector<vector<char>> &matrix, const Pos &pos) {
     vector<Pos> neighbours;
-    const auto& [r,c] = pos;
+    const auto &[r, c] = pos;
 
-    for (const auto& [step_r, step_c] : dirs) {
+    for (const auto &[step_r, step_c]: dirs) {
         auto new_r = r + step_r;
         auto new_c = c + step_c;
 
-        if (0 <= new_r && new_r < AREA_SIZE && 0 <= new_c && new_c < AREA_SIZE && matrix[new_r][ new_c] != '#') {
+        if (0 <= new_r && new_r < AREA_SIZE && 0 <= new_c && new_c < AREA_SIZE && matrix[new_r][new_c] != '#') {
             neighbours.emplace_back(new_r, new_c);
         }
     }
     return neighbours;
 }
 
-int find_shortest_path_len(const vector<vector<char>>& matrix, const Pos& start, const Pos& end) {
+int find_shortest_path_len(const vector<vector<char>> &matrix, const Pos &start, const Pos &end) {
     vector<vector<int>> distances(AREA_SIZE, vector(AREA_SIZE, INT_MAX));
-    vector<vector<Pos>> previous(AREA_SIZE, vector(AREA_SIZE, Pos(-1,-1)));
+    vector<vector<Pos>> previous(AREA_SIZE, vector(AREA_SIZE, Pos(-1, -1)));
     priority_queue<CellData, vector<CellData>, decltype(&compare)> pq(compare);
 
     distances[0][0] = 0;
@@ -91,15 +91,15 @@ int find_shortest_path_len(const vector<vector<char>>& matrix, const Pos& start,
     while (!pq.empty()) {
         const auto current = pq.top();
         pq.pop();
-        const auto& [current_r, current_c] = current.pos;
+        const auto &[current_r, current_c] = current.pos;
 
         if (current.pos == end) {
             break;
         }
 
         auto neighbours = get_neighbours(matrix, current.pos);
-        for (const auto& neighbour: neighbours) {
-            const auto& [n_r, n_c] = neighbour;
+        for (const auto &neighbour: neighbours) {
+            const auto &[n_r, n_c] = neighbour;
             auto new_dist = distances[current_r][current_c] + 1;
             if (new_dist < distances[n_r][n_c]) {
                 distances[n_r][n_c] = new_dist;
@@ -114,15 +114,27 @@ int find_shortest_path_len(const vector<vector<char>>& matrix, const Pos& start,
 int main() {
     auto data = read_data("18/data.txt");
     vector<vector<char>> matrix(AREA_SIZE, vector(AREA_SIZE, '.'));
-    int b = 0;
-    for (const auto& [r, c] : data) {
-        if (b++ == 1024) break;
+    for (int i = 0; i < 1024; i++) {
+        const auto &[r, c] = data[i];
         matrix[r][c] = '#';
     }
 
 //    print(matrix);
     Pos start(0, 0);
     Pos end(AREA_SIZE - 1, AREA_SIZE - 1);
-    cout << find_shortest_path_len(matrix, start, end);
+
+    //    cout << find_shortest_path_len(matrix, start, end);
+
+
+    for (int i = 1024; i < data.size(); i++) {
+        const auto &[r, c] = data[i];
+        matrix[r][c] = '#';
+        auto len = find_shortest_path_len(matrix, start, end);
+        if (len == INT_MAX) {
+            cout << c <<"," << r;
+            break;
+        }
+    }
+
     return 0;
 }
