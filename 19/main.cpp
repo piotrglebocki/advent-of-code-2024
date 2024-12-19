@@ -15,12 +15,12 @@ public:
         root_ = new TrieNode();
     }
 
-    void insert(const string& word) {
-        TrieNode* node = root_;
+    void insert(const string &word) {
+        TrieNode *node = root_;
         for (const auto c: word) {
             auto it = node->children.find(c);
             if (it == node->children.end()) {
-                TrieNode* next = new TrieNode();
+                TrieNode *next = new TrieNode();
                 node->children.insert({c, next});
                 node = next;
             } else {
@@ -30,9 +30,9 @@ public:
         node->is_word = true;
     }
 
-    vector<string> find_all_prefixes(const string& word) const {
+    vector<string> find_all_prefixes(const string &word) const {
         vector<string> prefixes;
-        TrieNode* node = root_;
+        TrieNode *node = root_;
 
         stringstream ss;
         for (const auto c: word) {
@@ -52,14 +52,14 @@ public:
 private:
 
     struct TrieNode {
-        unordered_map<char, TrieNode*> children;
+        unordered_map<char, TrieNode *> children;
         bool is_word;
     };
 
-    TrieNode* root_;
+    TrieNode *root_;
 };
 
-std::string trim(const std::string& str) {
+std::string trim(const std::string &str) {
     size_t start = str.find_first_not_of(" \t\n\r");
     if (start == std::string::npos) {
         return "";
@@ -94,7 +94,7 @@ vector<string> read_patterns(const string &filename) {
 
     auto splitted = split(ss.str(), ',');
     out.reserve(splitted.size());
-    for (const auto& word : splitted) {
+    for (const auto &word: splitted) {
         out.push_back(trim(word));
     }
 
@@ -118,37 +118,36 @@ vector<string> read_towels(const string &filename) {
     return out;
 }
 
-bool can_build_sequence(const string& sequence, const Trie& trie, unordered_map<string, bool>& memo) {
+long long ways_to_build_sequence(const string &sequence, const Trie &trie, unordered_map<string, long long> &memo) {
     auto it = memo.find(sequence);
     if (it != memo.end()) {
         return it->second;
     }
 
     if (sequence.empty()) {
-        memo.insert({sequence, true});
-        return true;
+        memo.insert({sequence, 1});
+        return 1;
     }
 
     auto prefixes = trie.find_all_prefixes(sequence);
     if (prefixes.empty()) {
-        memo.insert({sequence, false});
-        return false;
+        memo.insert({sequence, 0});
+        return 0;
     }
 
-    for (const auto& prefix: prefixes) {
+    long long total = 0;
+    for (const auto &prefix: prefixes) {
         string new_sequence = sequence.substr(prefix.length());
-        if (can_build_sequence(new_sequence, trie, memo)) {
-            memo.insert({sequence, true});
-            return true;
-        }
+        long long count = ways_to_build_sequence(new_sequence, trie, memo);
+        total += count;
     }
 
-    memo.insert({sequence, false});
-    return false;
+    memo.insert({sequence, total});
+    return total;
 }
 
-bool has_needed_chars(const string& towel, const unordered_set<char>& available_chars) {
-    for (auto c : towel) {
+bool has_needed_chars(const string &towel, const unordered_set<char> &available_chars) {
+    for (auto c: towel) {
         if (available_chars.find(c) == available_chars.end()) {
             return false;
         }
@@ -161,11 +160,13 @@ int main() {
     auto patterns = read_patterns("19/patterns.txt");
     auto towels = read_towels("19/towels.txt");
 
+//    vector<string> towels = {"gbbr"};
+
     // init
     unordered_set<char> available_chars;
     Trie trie;
 
-    for (const auto& pattern : patterns) {
+    for (const auto &pattern: patterns) {
         trie.insert(pattern);
         for (auto c: pattern) {
             available_chars.insert(c);
@@ -173,15 +174,22 @@ int main() {
     }
 
     // verify
-    int possible_count = 0;
-    unordered_map<string, bool> memo;
-    for (const auto& it : towels) {
-        if (has_needed_chars(it, available_chars) && can_build_sequence(it, trie, memo)) {
-            possible_count++;
+    long long possible_count = 0;
+    long long ways_to_build_seq = 0;
+    unordered_map<string, long long> memo;
+    for (const auto &it: towels) {
+        if (has_needed_chars(it, available_chars)) {
+            auto count = ways_to_build_sequence(it, trie, memo);
+            if (count > 0) {
+                cout << it << " : " << count << endl;
+                possible_count++;
+                ways_to_build_seq += count;
+            }
         }
     }
 
-    cout << possible_count;
+    cout << possible_count << endl;
+    cout << ways_to_build_seq;
 
     return 0;
 }
