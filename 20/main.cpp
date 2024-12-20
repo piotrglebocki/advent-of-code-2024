@@ -5,6 +5,7 @@
 #include <vector>
 #include <queue>
 #include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -124,21 +125,19 @@ void benchmark(std::function<void()> operation) {
     std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
 }
 
-int main() {
-    auto matrix = read_matrix("20/data.txt");
-    auto start = find_char(matrix, 'S');
-    auto end = find_char(matrix, 'E');
-
-    auto initial_path_len = find_path_len(matrix, start, end);
-
-    const auto rows = matrix.size();
+int process_rows(
+    vector<vector<char>> matrix, // make copy of matrix. Important for threading !
+    const Pos &start,
+    const Pos &end,
+    int initial_path_len,
+    int start_row,
+    int end_row
+) {
     const auto cols = matrix[0].size();
-
     int count = 0;
-    for (int r = 1; r < rows - 1; r++) {
-        cout << "Row: "<<r<<endl;
-        for (int c = 1; c < cols - 1; c++) {
 
+    for (int r = start_row; r < end_row; r++) {
+        for (int c = 0; c < cols; c++) {
             if (matrix[r][c] == '#') {
                 matrix[r][c] = '.';
                 auto path_len = find_path_len(matrix, start, end);
@@ -149,8 +148,42 @@ int main() {
             }
         }
     }
+    return count;
+}
 
-    cout << count;
+int main() {
+    benchmark([]() {
+        auto matrix = read_matrix("20/data.txt");
+
+        auto start = find_char(matrix, 'S');
+        auto end = find_char(matrix, 'E');
+
+        auto initial_path_len = find_path_len(matrix, start, end);
+        const auto rows = matrix.size();
+
+        const int cores = 10;
+        int chunk_size = rows / cores;
+        vector<thread> threads;
+        vector<int> thread_result(cores, 0);
+
+        for (int i = 0; i < cores; i++) {
+            int start_row = chunk_size * i;
+            int end_row = (i == cores - 1) ? rows : chunk_size * (i + 1);
+
+            threads.emplace_back([&](int start_row, int end_row, int index) {
+                thread_result[index] = process_rows(matrix, start, end, initial_path_len, start_row, end_row);
+            }, start_row, end_row, i);
+        }
+
+        for (int i = 0; i < cores; i++) {
+            threads[i].join();
+        }
+
+        int count = 0;
+        for (auto it: thread_result) count += it;
+
+        cout << count << endl;
+    });
 
     return 0;
 }
