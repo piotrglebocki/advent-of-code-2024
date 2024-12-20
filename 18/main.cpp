@@ -123,7 +123,7 @@ int main() {
     Pos start(0, 0);
     Pos end(AREA_SIZE - 1, AREA_SIZE - 1);
 
-    //    cout << find_shortest_path_len(matrix, start, end);
+    cout << find_shortest_path_len(matrix, start, end);
 
 
     for (int i = 1024; i < data.size(); i++) {
