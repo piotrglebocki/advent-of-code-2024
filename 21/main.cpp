@@ -278,6 +278,8 @@ void benchmark(std::function<void()> operation) {
     std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
 }
 
+int ROBOTS = 2;
+
 int main() {
     benchmark([]() {
         long long sum = 0;
@@ -285,13 +287,20 @@ int main() {
             int min_len = INT_MAX;
             auto numeric_sequences = translate_code_to_keypad_moves(code);
             for (const auto &numeric: numeric_sequences) {
-                auto keypad_sequences_1 = translate_keypad_sequence_to_another_keypad_moves(numeric);
-                for (const auto &keypad_1: keypad_sequences_1) {
-                    auto keypad_sequences_2 = translate_keypad_sequence_to_another_keypad_moves(keypad_1);
-                    for (const auto ks_2: keypad_sequences_2) {
-                        min_len = min(min_len, (int) ks_2.length());
-                    }
 
+                vector<string> current_sequences = {numeric};
+                vector<string> new_sequences;
+                for (int i = 0; i < ROBOTS; i++) {
+                    for (const auto &seq: current_sequences) {
+                        auto res = translate_keypad_sequence_to_another_keypad_moves(seq);
+                        new_sequences.insert(new_sequences.end(), res.begin(), res.end());
+                    }
+                    current_sequences = new_sequences;
+                    new_sequences.clear();
+                }
+
+                for (const auto& seq: current_sequences) {
+                    min_len = min(min_len, (int) seq.length());
                 }
             }
             sum += min_len * code_to_number(code);
