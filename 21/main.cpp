@@ -45,6 +45,9 @@ struct Position {
     }
 };
 
+unordered_map<string, vector<string>> numeric_cache;
+unordered_map<string, vector<string>> keypad_cache;
+
 Position find_char(const vector<vector<char>> &matrix, char target) {
     for (int r = 0; r < matrix.size(); r++) {
         for (int c = 0; c < matrix[0].size(); c++) {
@@ -198,8 +201,12 @@ combine(const vector<vector<string>> &input, const string &current_string, vecto
 }
 
 vector<string> translate_code_to_keypad_moves(string code) {
-    vector<vector<string>> all_sequences(code.length());
+    auto iter = numeric_cache.find(code);
+    if (iter != numeric_cache.end()) {
+        return iter->second;
+    }
 
+    vector<vector<string>> all_sequences(code.length());
     auto current = 'A';
     for (int i = 0; i < code.length(); i++) {
         auto sequences = get_path_sequences(NUMERIC_CONTROLLER, current, code[i]);
@@ -211,10 +218,15 @@ vector<string> translate_code_to_keypad_moves(string code) {
 
     vector<string> combinations;
     combine(all_sequences, "", combinations);
+    numeric_cache.insert({code, combinations});
     return combinations;
 }
 
 vector<string> translate_keypad_sequence_to_another_keypad_moves(const string &sequence) {
+    auto iter = keypad_cache.find(sequence);
+    if (iter != keypad_cache.end()) {
+        return iter->second;
+    }
     vector<vector<string>> all_sequences(sequence.length());
 
     auto current = 'A';
@@ -228,6 +240,7 @@ vector<string> translate_keypad_sequence_to_another_keypad_moves(const string &s
 
     vector<string> combinations;
     combine(all_sequences, "", combinations);
+    keypad_cache.insert({sequence, combinations});
     return combinations;
 }
 
@@ -257,24 +270,34 @@ vector<string> INPUT_DATA = {
     "582A"
 };
 
+void benchmark(std::function<void()> operation) {
+    auto start_time = std::chrono::high_resolution_clock::now();
+    operation();
+    auto end_time = std::chrono::high_resolution_clock::now();
+    auto duration = std::chrono::duration_cast<std::chrono::milliseconds>(end_time - start_time);
+    std::cout << "Elapsed time: " << duration.count() << " ms" << std::endl;
+}
+
 int main() {
-    long long sum = 0;
-    for (const auto &code: INPUT_DATA) {
-        int min_len = INT_MAX;
-        auto numeric_sequences = translate_code_to_keypad_moves(code);
-        for (const auto &numeric: numeric_sequences) {
-            auto keypad_sequences_1 = translate_keypad_sequence_to_another_keypad_moves(numeric);
-            for (const auto &keypad_1: keypad_sequences_1) {
-                auto keypad_sequences_2 = translate_keypad_sequence_to_another_keypad_moves(keypad_1);
-                for (const auto ks_2: keypad_sequences_2) {
-                    min_len = min(min_len, (int) ks_2.length());
+    benchmark([]() {
+        long long sum = 0;
+        for (const auto &code: INPUT_DATA) {
+            int min_len = INT_MAX;
+            auto numeric_sequences = translate_code_to_keypad_moves(code);
+            for (const auto &numeric: numeric_sequences) {
+                auto keypad_sequences_1 = translate_keypad_sequence_to_another_keypad_moves(numeric);
+                for (const auto &keypad_1: keypad_sequences_1) {
+                    auto keypad_sequences_2 = translate_keypad_sequence_to_another_keypad_moves(keypad_1);
+                    for (const auto ks_2: keypad_sequences_2) {
+                        min_len = min(min_len, (int) ks_2.length());
+                    }
+
                 }
-
             }
+            sum += min_len * code_to_number(code);
         }
-        sum += min_len * code_to_number(code);
-    }
+        cout << sum <<endl;
+    });
 
-    cout << sum;
     return 0;
 }
