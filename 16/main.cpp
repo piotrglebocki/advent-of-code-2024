@@ -122,12 +122,12 @@ int find(vector<vector<char>> &matrix) {
         if (matrix[r][c] == 'E') {
 
 
-            while (previous[r][c] != Position(-1, -1)) {
-                matrix[r][c] = 'O';
-                Position p = previous[r][c];
-                r = get<0>(p);
-                c = get<1>(p);
-            }
+//            while (previous[r][c] != Position(-1, -1)) {
+//                matrix[r][c] = 'O';
+//                Position p = previous[r][c];
+//                r = get<0>(p);
+//                c = get<1>(p);
+//            }
             return current_cost;
         }
 
@@ -204,7 +204,7 @@ int main() {
     int min_cost = find(matrix);
     cout << min_cost << endl;
 
-    print(matrix);
+//    print(matrix);
 //    cout << count(matrix);
     return 0;
 }
